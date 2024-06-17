@@ -106,6 +106,7 @@ SITES_USING_OVERRIDE_AS_STUDIO_FOR_SCENE = {
     "Devilstgirls": "Devil's Tgirls",
     "Dpfanatics": "DP Fanatics",
     "FalconStudios.com": "Falcon Studios",
+    "Gloryholesecrets": "Gloryhole Secrets",
     "RagingStallion.com": "Raging Stallion",    
     "Janedoe": "Jane Doe Pictures",
     "ModernDaySins": "Modern-Day Sins",
@@ -130,6 +131,7 @@ SITES_USING_SITENAME_AS_STUDIO_FOR_SCENE = [
     "RagingStallion.com",    
     "GenderXFilms",
     "Give Me Teens",
+    "Gloryholesecrets",
     "Hairy Undies",
     "Lesbian Factor",
     "Oopsie",
@@ -151,6 +153,12 @@ SITES_USING_NETWORK_AS_STUDIO_FOR_SCENE = [
     "Officemsconduct",  # network_name: Transfixed
     "Sabiendemonia",    # network_name: Sabien DeMonia
     "Upclosex"          # network_name: UpCloseX
+]
+
+# Some sites lists scenes from different subnetworks and uses mainChannel as studio
+# Good example is asgmax.com.
+SITES_SEGMENT_USING_MAIN_CHANNEL_AS_SCENE_STUDIO = [
+    "asgmax",
 ]
 
 # a list of networks (`network_name` from the API) which should pick out the
@@ -619,6 +627,9 @@ def determine_studio_name_from_json(some_json):
     - movie
     '''
     studio_name = None
+    if some_json.get('segment') in SITES_SEGMENT_USING_MAIN_CHANNEL_AS_SCENE_STUDIO:
+        studio_name = some_json.get('mainChannel', {}).get('name', '')
+        return studio_name
     if some_json.get('sitename_pretty'):
         if some_json.get('sitename_pretty') in SITES_USING_OVERRIDE_AS_STUDIO_FOR_SCENE:
             studio_name = \
@@ -702,6 +713,13 @@ def parse_scene_json(scene_json, url=None):
         tag_name = " ".join(tag.capitalize() for tag in tag_name.split(" "))
         if tag_name:
             list_tag.append({"name": tag.get('name')})
+            
+    # Append content_tags to list_tag
+    for tag in scene_json.get('content_tags', []):
+        if isinstance(tag, str):
+            tag = tag.capitalize()
+            list_tag.append({"name": tag})
+
     if FIXED_TAG:
         list_tag.append({"name": FIXED_TAG})
     scrape['tags'] = list_tag
@@ -807,6 +825,13 @@ def parse_gallery_json(gallery_json: dict, url: str = None) -> dict:
         tag_name = " ".join(tag.capitalize() for tag in tag_name.split(" "))
         if tag_name:
             list_tag.append({"name": tag.get('name')})
+    # Append content_tags to list_tag
+    for tag in gallery_json.get('content_tags', []):
+        if isinstance(tag, str):
+            tag = tag.capitalize()
+            list_tag.append({"name": tag})
+        else:
+            continue
     if FIXED_TAG:
         list_tag.append({"name": FIXED_TAG})
     scrape['tags'] = list_tag

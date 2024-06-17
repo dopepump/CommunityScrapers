@@ -3,7 +3,13 @@ sceneByURL:
   - action: scrapeXPath
     url:
       - x-art.com/videos/
+      - x-art.com/members/videos/
     scraper: sceneScraper
+    queryURL: "{url}"
+    queryURLReplace:
+      url:
+        - regex: members
+          with: ""
 
 galleryByURL:
   - action: scrapeXPath
@@ -14,18 +20,27 @@ galleryByURL:
 xPathScrapers:
   sceneScraper:
     common:
-      $sceneinfo: //div[@class="small-12 medium-12 large-12 columns info"]
+      $featuring: //h2[span[contains(.,'featuring')]]
     scene:
-      Title: //div[@class="row info"]/div[@class="small-12 medium-12 large-12 columns"]/h1
+      Title: //div[@class="row info"]//h1
       Date:
-        selector: $sceneinfo/h2[1]/text()
+        selector: $featuring/preceding-sibling::h2[1]
         postProcess:
           - parseDate: Jan 02, 2006
       Details:
-        selector: $sceneinfo/p
-        concat: " "
+        # Studio is as inconsistent as ever: we'll grab all but the first element from the info div
+        # (because that's their vote system) and just regex out everything after the date element
+        # this is as close as we can get to preserving the whole description, regardless of whether
+        # they've used <p> or <h2> or <strong> or what have you
+        selector: (//div[contains(@class, "info")])[2]/*[position()>1]
+        concat: "\n\n"
+        postProcess:
+          # Everything after the date is "featuring" and "download in 4k" stuff
+          - replace:
+              - regex: (?s)\w{3} \d{2}, \d{4}.*
+                with: ""
       Performers:
-        Name: $sceneinfo/h2/a/text()
+        Name: $featuring/a
       Image: //div[@class="flex-video widescreen"]/a/img/@src
       Studio:
         Name:
@@ -51,4 +66,4 @@ xPathScrapers:
       Performers:
         Name: $gallery/h2/a
         URL: $gallery/h2/a/@href
-# Last Updated March 19, 2024
+# Last Updated May 25, 2024
